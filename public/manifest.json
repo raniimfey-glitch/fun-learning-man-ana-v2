@@ -1,0 +1,84 @@
+{
+  "name": "من أنا؟ - التعليم الممتع",
+  "short_name": "من أنا؟",
+  "description": "تطبيق ألعاب تعليمية تفاعلية لتخمين الشخصيات مع نظام صوتي متطور فائق النقاء ومعادل تلقائي ومضخم صوت جهير احترافي.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "fullscreen", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#05070a",
+  "theme_color": "#080e1c",
+  "lang": "ar",
+  "dir": "rtl",
+  "prefer_related_applications": false,
+  "categories": ["education", "games", "kids"],
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "64x64",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "عالم الحيوانات",
+      "short_name": "الحيوانات",
+      "description": "العب وخمن شخصيات عالم الحيوانات",
+      "url": "/?category=animals",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "المهن والوظائف",
+      "short_name": "المهن",
+      "description": "خمن المهن والوظائف المتنوعة",
+      "url": "/?category=jobs",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "الفواكه والخضار",
+      "short_name": "الفواكه",
+      "description": "خمن الفواكه والخضروات اللذيذة",
+      "url": "/?category=fruits",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "أدوات المدرسة",
+      "short_name": "المدرسة",
+      "description": "خمن أدوات الفصل والمدرسة",
+      "url": "/?category=school",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}

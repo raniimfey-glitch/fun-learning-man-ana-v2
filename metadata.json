@@ -1,0 +1,6 @@
+{
+  "name": "من أنا؟ - التعليم الممتع",
+  "description": "تطبيق ألعاب تعليمية تفاعلية لتخمين الشخصيات مع نظام صوتي متطور فائق النقاء ومعادل تلقائي ومضخم صوت جهير احترافي.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
