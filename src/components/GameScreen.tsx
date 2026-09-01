@@ -86,7 +86,7 @@ export const GameScreen: React.FC<Props> = ({
       onTriggerConfetti();
       
       const speechText = currentQ.fact 
-        ? `أَحْسَنْتَ! إِجَابَةٌ صَحِيحَةٌ. هَلْ تَعَلَّمْتَ الْيَوْمَ؟ ${currentQ.fact}`
+        ? `أَحْسَنْتَ! إِجَابَةٌ صَحِيحَةٌ. ${currentQ.fact}`
         : "أَحْسَنْتَ! إِجَابَةٌ صَحِيحَةٌ";
       setTimeout(() => {
         soundEngine.speak(speechText);
@@ -96,7 +96,7 @@ export const GameScreen: React.FC<Props> = ({
       soundEngine.playError();
       
       const speechText = currentQ.fact
-        ? `الْإِجَابَةُ الصَّحِيحَةُ هِيَ: ${currentQ.answer}. هَلْ تَعَلَّمْتَ الْيَوْمَ؟ ${currentQ.fact}`
+        ? `الْإِجَابَةُ الصَّحِيحَةُ هِيَ: ${currentQ.answer}. ${currentQ.fact}`
         : `الْإِجَابَةُ الصَّحِيحَةُ هِيَ: ${currentQ.answer}`;
       setTimeout(() => {
         soundEngine.speak(speechText);
@@ -104,12 +104,12 @@ export const GameScreen: React.FC<Props> = ({
     }
   };
 
-  // Re-read educational fact
+  // Re-read educational fact directly
   const handleSpeakFact = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (!currentQ || !currentQ.fact) return;
     soundEngine.playClick();
-    soundEngine.speak(`هَلْ تَعَلَّمْتَ الْيَوْمَ؟ ${currentQ.fact}`);
+    soundEngine.speak(currentQ.fact);
   };
 
   // Re-read current clues

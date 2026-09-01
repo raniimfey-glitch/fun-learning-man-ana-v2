@@ -711,16 +711,16 @@ class SoundEngine {
 
     let res = text;
 
+    // Remove any "هل تعلمت اليوم" variations from spoken audio to speak the fact directly
+    res = res.replace(/هَلْ\s+تَعَلَّمْتَ\s+الْيَوْمَ[؟?:]?/g, '');
+    res = res.replace(/هل\s+تعلمت\s+اليوم[؟?:]?/g, '');
+    res = res.replace(/تعلّمت\s+اليوم[؟?:]?/g, '');
+
     // Specifically handle "ملك الغابة" and variations to strictly enforce "مَلِك" (with fatha on meem)
     res = res.replace(/أنا\s+م[ُِْ]?ل[ُِْ]?ك\s+الغابة/g, 'أَنَا مَلِكُ الْغَابَةِ');
     res = res.replace(/أَنَا\s+م[ُِْ]?ل[ُِْ]?ك\s+الْغَابَةِ?/g, 'أَنَا مَلِكُ الْغَابَةِ');
     res = res.replace(/\bم[ُِْ]?ل[ُِْ]?ك\s+الغابة/g, 'مَلِكُ الْغَابَةِ');
     res = res.replace(/\bم[ُِْ]?ل[ُِْ]?ك\s+الْغَابَةِ?/g, 'مَلِكُ الْغَابَةِ');
-
-    // "هل تعلمت اليوم" phonetic stabilization
-    res = res.replace(/هل\s+تعلمت\s+اليوم[؟?]?/g, 'هَلْ تَعَلَّمْتَ الْيَوْمَ؟');
-    res = res.replace(/هَلْ\s+تَعَلَّمْتَ\s+الْيَوْمَ[؟?]?/g, 'هَلْ تَعَلَّمْتَ الْيَوْمَ؟');
-    res = res.replace(/تعلّمت\s+اليوم[؟?]?/g, 'هَلْ تَعَلَّمْتَ الْيَوْمَ؟');
 
     // General common pronunciation enhancements
     res = res.replace(/\bأحسنت\b/g, 'أَحْسَنْتَ');
@@ -764,8 +764,45 @@ class SoundEngine {
     res = res.replace(/\bسيارة الإسعاف\b/g, 'سَيَّارَةُ الْإِسْعَافِ');
     res = res.replace(/\bالحافلة المدرسية\b/g, 'الْحَافِلَةُ الْمَدْرَسِيَّةُ');
 
-    return res;
+    return res.trim();
   }
+
+  // Split text into natural, digestible speech chunks to prevent Web Speech API truncation
+  private splitIntoSpeechChunks(text: string): string[] {
+    if (!text) return [];
+
+    // Split on punctuation (. ! ؟ \n)
+    const rawParts = text.split(/([.!؟\n]+)/);
+    const chunks: string[] = [];
+    let buffer = '';
+
+    for (let i = 0; i < rawParts.length; i++) {
+      const part = rawParts[i];
+      if (!part) continue;
+
+      if (/^[.!؟\n]+$/.test(part)) {
+        if (buffer.trim()) {
+          chunks.push(buffer.trim());
+          buffer = '';
+        }
+      } else {
+        buffer += (buffer ? ' ' : '') + part.trim();
+        if (buffer.length > 90) {
+          chunks.push(buffer.trim());
+          buffer = '';
+        }
+      }
+    }
+
+    if (buffer.trim()) {
+      chunks.push(buffer.trim());
+    }
+
+    return chunks.filter(c => c.length > 0);
+  }
+
+  private currentSpeechSessionId = 0;
+  private activeUtterancesSet: Set<SpeechSynthesisUtterance> = new Set();
 
   public speak(text: string, onEndCallback?: () => void) {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
@@ -774,72 +811,91 @@ class SoundEngine {
     if (!normalizedText.trim()) return;
 
     try {
-      if (this.keepAliveInterval) {
-        clearInterval(this.keepAliveInterval);
-        this.keepAliveInterval = null;
-      }
+      this.currentSpeechSessionId++;
+      const currentSession = this.currentSpeechSessionId;
 
       window.speechSynthesis.cancel();
+      this.activeUtterancesSet.clear();
       this.setSpeaking(false);
 
       if (window.speechSynthesis.paused) {
         window.speechSynthesis.resume();
       }
 
-      const utterance = new SpeechSynthesisUtterance(normalizedText);
-      this.activeUtterance = utterance;
-      (window as any).__currentUtterance = utterance;
+      const chunks = this.splitIntoSpeechChunks(normalizedText);
+      if (chunks.length === 0) return;
 
       const voice = this.getBestArabicVoice();
-      if (voice) {
-        utterance.voice = voice;
-      }
-      utterance.lang = 'ar-SA';
-      utterance.rate = Math.max(0.7, Math.min(1.2, this.settings.ttsRate));
-      utterance.pitch = 1.0;
-      utterance.volume = Math.max(0.1, Math.min(1.0, this.settings.ttsVolume * this.settings.volume));
+      let index = 0;
 
-      utterance.onstart = () => {
-        this.setSpeaking(true);
-        // Chrome keep-alive bug fix: periodically trigger resume during long sentences
-        this.keepAliveInterval = window.setInterval(() => {
-          if (!window.speechSynthesis.speaking) {
-            if (this.keepAliveInterval) {
-              clearInterval(this.keepAliveInterval);
-              this.keepAliveInterval = null;
-            }
-          } else {
-            window.speechSynthesis.pause();
-            window.speechSynthesis.resume();
+      const playNext = () => {
+        if (currentSession !== this.currentSpeechSessionId) return;
+
+        if (index >= chunks.length) {
+          this.setSpeaking(false);
+          this.activeUtterancesSet.clear();
+          if (onEndCallback) onEndCallback();
+          return;
+        }
+
+        const rawChunk = chunks[index];
+        index++;
+
+        // Clean punctuation marks that choke the engine
+        const cleanChunk = rawChunk.replace(/[!؟]/g, '،').trim();
+        if (!cleanChunk) {
+          playNext();
+          return;
+        }
+
+        const utterance = new SpeechSynthesisUtterance(cleanChunk);
+        this.activeUtterancesSet.add(utterance);
+        (window as any).__speechUtterance = utterance;
+
+        if (voice) {
+          utterance.voice = voice;
+        }
+        utterance.lang = 'ar-SA';
+        utterance.rate = Math.max(0.75, Math.min(1.15, this.settings.ttsRate));
+        utterance.pitch = 1.0;
+        utterance.volume = Math.max(0.1, Math.min(1.0, this.settings.ttsVolume * this.settings.volume));
+
+        utterance.onstart = () => {
+          if (currentSession === this.currentSpeechSessionId) {
+            this.setSpeaking(true);
           }
-        }, 8000);
+        };
+
+        utterance.onend = () => {
+          this.activeUtterancesSet.delete(utterance);
+          if (currentSession === this.currentSpeechSessionId) {
+            playNext();
+          }
+        };
+
+        utterance.onerror = (e) => {
+          this.activeUtterancesSet.delete(utterance);
+          if (e.error !== 'interrupted' && e.error !== 'canceled') {
+            console.warn('Speech chunk error:', e);
+          }
+          if (currentSession === this.currentSpeechSessionId) {
+            playNext();
+          }
+        };
+
+        try {
+          window.speechSynthesis.speak(utterance);
+        } catch {
+          this.setSpeaking(false);
+        }
       };
 
-      utterance.onend = () => {
-        if (this.keepAliveInterval) {
-          clearInterval(this.keepAliveInterval);
-          this.keepAliveInterval = null;
+      setTimeout(() => {
+        if (currentSession === this.currentSpeechSessionId) {
+          playNext();
         }
-        this.setSpeaking(false);
-        this.activeUtterance = null;
-        (window as any).__currentUtterance = null;
-        if (onEndCallback) onEndCallback();
-      };
+      }, 40);
 
-      utterance.onerror = (e) => {
-        if (this.keepAliveInterval) {
-          clearInterval(this.keepAliveInterval);
-          this.keepAliveInterval = null;
-        }
-        this.setSpeaking(false);
-        this.activeUtterance = null;
-        (window as any).__currentUtterance = null;
-        if (e.error !== 'interrupted' && e.error !== 'canceled') {
-          console.warn('Speech synthesis error:', e);
-        }
-      };
-
-      window.speechSynthesis.speak(utterance);
     } catch (err) {
       console.warn('Failed to speak text:', err);
       this.setSpeaking(false);
@@ -848,13 +904,10 @@ class SoundEngine {
 
   public stopSpeaking() {
     try {
-      if (this.keepAliveInterval) {
-        clearInterval(this.keepAliveInterval);
-        this.keepAliveInterval = null;
-      }
+      this.currentSpeechSessionId++;
+      this.activeUtterancesSet.clear();
       this.setSpeaking(false);
-      this.activeUtterance = null;
-      (window as any).__currentUtterance = null;
+      (window as any).__speechUtterance = null;
       if (typeof window !== 'undefined' && window.speechSynthesis) {
         window.speechSynthesis.cancel();
       }

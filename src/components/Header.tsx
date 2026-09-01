@@ -39,21 +39,21 @@ export const Header: React.FC<Props> = ({
           }}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer active:scale-95 border ${
             isDark
-              ? 'bg-slate-850 hover:bg-slate-800 text-amber-300 border-amber-400/30 hover:border-amber-400/60 shadow-xs'
-              : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300 hover:border-slate-400 shadow-xs'
+              ? 'bg-slate-800 hover:bg-slate-750 text-indigo-200 border-indigo-400/30 hover:border-indigo-400/60 shadow-xs'
+              : 'bg-amber-50/90 hover:bg-amber-100 text-amber-850 border-amber-300 hover:border-amber-400 shadow-xs'
           }`}
-          title={isDark ? 'التبديل إلى الوضع النهاري (Light Mode)' : 'التبديل إلى الوضع الليلي (Dark Mode)'}
+          title={isDark ? 'الوضع الليلي (انقر للتحويل إلى النهاري)' : 'الوضع النهاري (انقر للتحويل إلى الليلي)'}
           aria-label="تبديل المظهر"
         >
           {isDark ? (
             <>
-              <Sun className="w-3.5 h-3.5 text-amber-400 animate-spin-slow" />
-              <span>الوضع النهاري ☀️</span>
+              <Moon className="w-3.5 h-3.5 text-indigo-300" />
+              <span>الوضع الليلي 🌙</span>
             </>
           ) : (
             <>
-              <Moon className="w-3.5 h-3.5 text-indigo-600" />
-              <span>الوضع الليلي 🌙</span>
+              <Sun className="w-3.5 h-3.5 text-amber-500 animate-spin-slow" />
+              <span>الوضع النهاري ☀️</span>
             </>
           )}
         </button>
