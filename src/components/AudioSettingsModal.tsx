@@ -1,18 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { soundEngine } from '../services/soundEngine';
-import { EnvironmentMode, BassBoostLevel } from '../types';
+import { EnvironmentMode, BassBoostLevel, ThemeMode } from '../types';
 import { 
   X, Volume2, Sliders, Sparkles, Headphones, 
-  Smartphone, VolumeX, Radio, ShieldCheck, Zap,
+  Smartphone, Radio, ShieldCheck, Zap,
   Play, RotateCcw, Activity, Mic
 } from 'lucide-react';
 
 interface Props {
+  theme: ThemeMode;
   isOpen: boolean;
   onClose: () => void;
 }
 
-export const AudioSettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
+export const AudioSettingsModal: React.FC<Props> = ({ theme, isOpen, onClose }) => {
+  const isDark = theme === 'dark';
   const [settings, setSettings] = useState(soundEngine.settings);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -154,17 +156,43 @@ export const AudioSettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
     >
       <div 
         id="audio-settings-modal"
-        className="bg-[#080e1c] text-slate-100 rounded-2xl w-full max-w-lg shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] border border-slate-800 overflow-hidden my-auto flex flex-col max-h-[92vh]"
+        className={`rounded-2xl w-full max-w-lg shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] border overflow-hidden my-auto flex flex-col max-h-[92vh] ${
+          isDark
+            ? 'bg-[#080e1c] text-slate-100 border-slate-800'
+            : 'bg-white text-slate-900 border-slate-200 shadow-2xl'
+        }`}
       >
         {/* Header */}
-        <div className="bg-[#0c1426] border-b border-slate-800 text-slate-100 p-4 flex items-center justify-between shadow-md">
+        <div
+          className={`p-4 flex items-center justify-between shadow-md border-b ${
+            isDark
+              ? 'bg-[#0c1426] border-slate-800 text-slate-100'
+              : 'bg-slate-50 border-slate-200 text-slate-900'
+          }`}
+        >
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-slate-800/80 border border-slate-700/80 flex items-center justify-center backdrop-blur-xs shadow-inner">
-              <Sliders className="w-5 h-5 text-cyan-400" />
+            <div
+              className={`w-9 h-9 rounded-xl border flex items-center justify-center backdrop-blur-xs shadow-inner ${
+                isDark
+                  ? 'bg-slate-800/80 border-slate-700/80'
+                  : 'bg-cyan-50 border-cyan-200 text-cyan-700'
+              }`}
+            >
+              <Sliders className="w-5 h-5 text-cyan-500" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-black leading-tight bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">النظام الصوتي ومعادل الصوت الذكي</h2>
-              <p className="text-xs text-slate-400 font-medium">تحسين الترددات، تقليل الضجيج، وتضخيم الجهير</p>
+              <h2
+                className={`text-base sm:text-lg font-black leading-tight ${
+                  isDark
+                    ? 'bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent'
+                    : 'text-slate-900'
+                }`}
+              >
+                النظام الصوتي ومعادل الصوت الذكي
+              </h2>
+              <p className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                تحسين الترددات، تقليل الضجيج، وتضخيم الجهير
+              </p>
             </div>
           </div>
           <button 
@@ -173,7 +201,11 @@ export const AudioSettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
               soundEngine.playClick();
               onClose();
             }}
-            className="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 active:scale-90 flex items-center justify-center transition-all cursor-pointer text-slate-300 hover:text-white border border-slate-700/60"
+            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer border active:scale-90 ${
+              isDark
+                ? 'bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border-slate-700/60'
+                : 'bg-slate-200 hover:bg-slate-300 text-slate-700 border-slate-300'
+            }`}
             aria-label="إغلاق"
           >
             <X className="w-5 h-5" />
@@ -181,10 +213,14 @@ export const AudioSettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Modal Body */}
-        <div className="p-4 sm:p-5 overflow-y-auto space-y-5 divide-y divide-slate-800/60">
+        <div
+          className={`p-4 sm:p-5 overflow-y-auto space-y-5 divide-y ${
+            isDark ? 'divide-slate-800/60' : 'divide-slate-200'
+          }`}
+        >
           
           {/* Visualizer & Status */}
-          <div className="bg-slate-950 rounded-xl p-3 border border-slate-800 shadow-inner">
+          <div className="bg-slate-950 rounded-xl p-3 border border-slate-850 shadow-inner">
             <div className="flex items-center justify-between text-xs text-cyan-300 font-bold mb-2">
               <span className="flex items-center gap-1.5">
                 <Activity className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
@@ -210,11 +246,13 @@ export const AudioSettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
           {/* 1. Environment Auto-Equalizer */}
           <div className="pt-4 space-y-2.5">
             <div className="flex items-center justify-between">
-              <label className="text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-1.5">
-                <Radio className="w-4 h-4 text-cyan-400" />
+              <label className={`text-xs sm:text-sm font-bold flex items-center gap-1.5 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                <Radio className="w-4 h-4 text-cyan-500" />
                 معادل الصوت التلقائي (حسب بيئة المستخدم)
               </label>
-              <span className="text-[11px] font-semibold text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded-md border border-cyan-800/60">
+              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${
+                isDark ? 'text-cyan-400 bg-cyan-950/60 border-cyan-800/60' : 'text-cyan-800 bg-cyan-50 border-cyan-200'
+              }`}>
                 تكيّف فوري
               </span>
             </div>
@@ -230,14 +268,16 @@ export const AudioSettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                     className={`p-2.5 rounded-xl border text-right transition-all cursor-pointer flex flex-col justify-between ${
                       active
                         ? 'bg-cyan-600 text-white border-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.3)] scale-[1.02]'
-                        : 'bg-[#0c1426]/80 hover:bg-[#111c34] text-slate-200 border-slate-800 hover:border-slate-700'
+                        : isDark
+                          ? 'bg-[#0c1426]/80 hover:bg-[#111c34] text-slate-200 border-slate-800 hover:border-slate-700'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-bold text-xs">{env.label}</span>
-                      <span className={active ? 'text-white' : 'text-cyan-400'}>{env.icon}</span>
+                      <span className={active ? 'text-white' : 'text-cyan-500'}>{env.icon}</span>
                     </div>
-                    <span className={`text-[10px] line-clamp-1 ${active ? 'text-cyan-100' : 'text-slate-400'}`}>
+                    <span className={`text-[10px] line-clamp-1 ${active ? 'text-cyan-100' : isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                       {env.desc}
                     </span>
                   </button>
@@ -250,20 +290,26 @@ export const AudioSettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
           <div className="pt-4 space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <label className="text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-1.5">
-                  <Zap className="w-4 h-4 text-amber-400" />
+                <label className={`text-xs sm:text-sm font-bold flex items-center gap-1.5 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                  <Zap className="w-4 h-4 text-amber-500" />
                   تضخيم الصوت الجهير الاحترافي (Bass Boost & Punch)
                 </label>
-                <p className="text-[11px] text-slate-400 mt-0.5">توليد توافقي للترددات المنخفضة وتجسيم عميق</p>
+                <p className={`text-[11px] mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  توليد توافقي للترددات المنخفضة وتجسيم عميق
+                </p>
               </div>
               <button
                 id="test-bass-btn"
                 onClick={() => {
                   soundEngine.playBassTest();
                 }}
-                className="bg-amber-950/60 hover:bg-amber-900/60 text-amber-300 border border-amber-500/40 text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 active:scale-95 transition-transform cursor-pointer"
+                className={`text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 active:scale-95 transition-transform cursor-pointer border ${
+                  isDark
+                    ? 'bg-amber-950/60 hover:bg-amber-900/60 text-amber-300 border-amber-500/40'
+                    : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300'
+                }`}
               >
-                <Play className="w-3 h-3 fill-amber-400" />
+                <Play className="w-3 h-3 fill-amber-500 text-amber-500" />
                 اختبار الجهير
               </button>
             </div>
@@ -280,19 +326,29 @@ export const AudioSettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                     className={`py-2 px-1 rounded-lg border text-center transition-all cursor-pointer ${
                       active
                         ? 'bg-amber-500 text-slate-950 font-black border-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
-                        : 'bg-[#0c1426] hover:bg-[#111c34] text-slate-300 border-slate-800 text-xs'
+                        : isDark
+                          ? 'bg-[#0c1426] hover:bg-[#111c34] text-slate-300 border-slate-800 text-xs'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200 text-xs'
                     }`}
                   >
                     <div className="text-[11px] font-bold">{lvl.label}</div>
-                    <div className={`text-[9px] ${active ? 'text-amber-950 font-bold' : 'text-slate-500'}`}>{lvl.gain}</div>
+                    <div className={`text-[9px] ${active ? 'text-amber-950 font-bold' : isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                      {lvl.gain}
+                    </div>
                   </button>
                 );
               })}
             </div>
 
             {/* Fine-tuning Bass Slider */}
-            <div className="bg-[#0c1426] p-2.5 rounded-xl border border-slate-800 flex items-center gap-3">
-              <span className="text-xs font-bold text-amber-300 min-w-[75px]">معيار الجهير:</span>
+            <div
+              className={`p-2.5 rounded-xl border flex items-center gap-3 ${
+                isDark ? 'bg-[#0c1426] border-slate-800' : 'bg-slate-50 border-slate-200'
+              }`}
+            >
+              <span className={`text-xs font-bold min-w-[75px] ${isDark ? 'text-amber-300' : 'text-amber-800'}`}>
+                معيار الجهير:
+              </span>
               <input
                 id="bass-gain-slider"
                 type="range"
@@ -301,9 +357,11 @@ export const AudioSettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 step="1"
                 value={settings.bassGain}
                 onChange={(e) => handleBassGainChange(Number(e.target.value))}
-                className="w-full accent-amber-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg"
+                className="w-full accent-amber-500 cursor-pointer h-1.5 bg-slate-300 dark:bg-slate-800 rounded-lg"
               />
-              <span className="text-xs font-bold text-amber-300 min-w-[36px] text-left">+{settings.bassGain}dB</span>
+              <span className={`text-xs font-bold min-w-[36px] text-left ${isDark ? 'text-amber-300' : 'text-amber-800'}`}>
+                +{settings.bassGain}dB
+              </span>
             </div>
           </div>
 
@@ -311,20 +369,26 @@ export const AudioSettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
           <div className="pt-4 space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <label className="text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-cyan-400" />
+                <label className={`text-xs sm:text-sm font-bold flex items-center gap-1.5 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                  <Sparkles className="w-4 h-4 text-cyan-500" />
                   تحسين نقاء الترددات وفلترة الضجيج
                 </label>
-                <p className="text-[11px] text-slate-400 mt-0.5">تنقية الصوت من الترددات المزعجة وإبراز مخارج الحروف</p>
+                <p className={`text-[11px] mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  تنقية الصوت من الترددات المزعجة وإبراز مخارج الحروف
+                </p>
               </div>
               <button
                 id="test-clarity-btn"
                 onClick={() => {
                   soundEngine.playClarityTest();
                 }}
-                className="bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 border border-cyan-500/40 text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 active:scale-95 transition-transform cursor-pointer"
+                className={`text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 active:scale-95 transition-transform cursor-pointer border ${
+                  isDark
+                    ? 'bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 border-cyan-500/40'
+                    : 'bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border-cyan-300'
+                }`}
               >
-                <Play className="w-3 h-3 fill-cyan-400" />
+                <Play className="w-3 h-3 fill-cyan-500 text-cyan-500" />
                 اختبار النقاء
               </button>
             </div>
@@ -336,18 +400,22 @@ export const AudioSettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 onClick={toggleNoiseReduction}
                 className={`p-2.5 rounded-xl border flex items-center justify-between text-right cursor-pointer transition-all ${
                   settings.noiseReduction
-                    ? 'bg-[#0d2035] border-cyan-500/60 text-cyan-200 font-bold shadow-[0_0_12px_rgba(6,182,212,0.15)]'
-                    : 'bg-[#0c1426] border-slate-800 text-slate-400 hover:border-slate-700'
+                    ? isDark
+                      ? 'bg-[#0d2035] border-cyan-500/60 text-cyan-200 font-bold shadow-[0_0_12px_rgba(6,182,212,0.15)]'
+                      : 'bg-cyan-50 border-cyan-400 text-cyan-900 font-bold shadow-xs'
+                    : isDark
+                      ? 'bg-[#0c1426] border-slate-800 text-slate-400 hover:border-slate-700'
+                      : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <ShieldCheck className={`w-4 h-4 ${settings.noiseReduction ? 'text-cyan-400' : 'text-slate-500'}`} />
+                  <ShieldCheck className={`w-4 h-4 ${settings.noiseReduction ? 'text-cyan-500' : 'text-slate-400'}`} />
                   <div>
                     <div className="text-xs">تقليل الضجيج المحيط</div>
-                    <div className="text-[10px] text-slate-400">فلتر إزالة التشويش</div>
+                    <div className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>فلتر إزالة التشويش</div>
                   </div>
                 </div>
-                <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${settings.noiseReduction ? 'bg-cyan-500 border-cyan-400 text-slate-950' : 'border-slate-700'}`}>
+                <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${settings.noiseReduction ? 'bg-cyan-500 border-cyan-400 text-white' : isDark ? 'border-slate-700' : 'border-slate-300'}`}>
                   {settings.noiseReduction && <span className="text-[10px] font-black">✓</span>}
                 </div>
               </button>
@@ -357,31 +425,41 @@ export const AudioSettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 onClick={toggleFreqEnhancer}
                 className={`p-2.5 rounded-xl border flex items-center justify-between text-right cursor-pointer transition-all ${
                   settings.frequencyEnhancer
-                    ? 'bg-[#0d2035] border-cyan-500/60 text-cyan-200 font-bold shadow-[0_0_12px_rgba(6,182,212,0.15)]'
-                    : 'bg-[#0c1426] border-slate-800 text-slate-400 hover:border-slate-700'
+                    ? isDark
+                      ? 'bg-[#0d2035] border-cyan-500/60 text-cyan-200 font-bold shadow-[0_0_12px_rgba(6,182,212,0.15)]'
+                      : 'bg-cyan-50 border-cyan-400 text-cyan-900 font-bold shadow-xs'
+                    : isDark
+                      ? 'bg-[#0c1426] border-slate-800 text-slate-400 hover:border-slate-700'
+                      : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <Sparkles className={`w-4 h-4 ${settings.frequencyEnhancer ? 'text-cyan-400' : 'text-slate-500'}`} />
+                  <Sparkles className={`w-4 h-4 ${settings.frequencyEnhancer ? 'text-cyan-500' : 'text-slate-400'}`} />
                   <div>
                     <div className="text-xs">مُعزز الترددات الفائقة</div>
-                    <div className="text-[10px] text-slate-400">لمعان ونقاء بلوري</div>
+                    <div className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>لمعان ونقاء بلوري</div>
                   </div>
                 </div>
-                <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${settings.frequencyEnhancer ? 'bg-cyan-500 border-cyan-400 text-slate-950' : 'border-slate-700'}`}>
+                <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${settings.frequencyEnhancer ? 'bg-cyan-500 border-cyan-400 text-white' : isDark ? 'border-slate-700' : 'border-slate-300'}`}>
                   {settings.frequencyEnhancer && <span className="text-[10px] font-black">✓</span>}
                 </div>
               </button>
             </div>
 
             {/* Vocal Clarity Slider */}
-            <div className="bg-[#0c1426] p-2.5 rounded-xl border border-slate-800 space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold text-slate-200">
+            <div
+              className={`p-2.5 rounded-xl border space-y-2 ${
+                isDark ? 'bg-[#0c1426] border-slate-800' : 'bg-slate-50 border-slate-200'
+              }`}
+            >
+              <div className={`flex items-center justify-between text-xs font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                 <span className="flex items-center gap-1">
-                  <Mic className="w-3.5 h-3.5 text-cyan-400" />
+                  <Mic className="w-3.5 h-3.5 text-cyan-500" />
                   وضوح نطق الكلمات والتلميحات (Vocal Clarity):
                 </span>
-                <span className="text-cyan-400 font-extrabold">{settings.vocalClarity} / 10</span>
+                <span className={isDark ? 'text-cyan-400 font-extrabold' : 'text-cyan-700 font-extrabold'}>
+                  {settings.vocalClarity} / 10
+                </span>
               </div>
               <input
                 id="vocal-clarity-slider"
@@ -391,15 +469,21 @@ export const AudioSettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 step="1"
                 value={settings.vocalClarity}
                 onChange={(e) => handleClarityChange(Number(e.target.value))}
-                className="w-full accent-cyan-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg"
+                className="w-full accent-cyan-500 cursor-pointer h-1.5 bg-slate-300 dark:bg-slate-800 rounded-lg"
               />
             </div>
 
             {/* Treble Shimmer Slider */}
-            <div className="bg-[#0c1426] p-2.5 rounded-xl border border-slate-800 space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold text-slate-200">
+            <div
+              className={`p-2.5 rounded-xl border space-y-2 ${
+                isDark ? 'bg-[#0c1426] border-slate-800' : 'bg-slate-50 border-slate-200'
+              }`}
+            >
+              <div className={`flex items-center justify-between text-xs font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                 <span>بريق الترددات العالية (Treble Air):</span>
-                <span className="text-cyan-400 font-extrabold">+{settings.trebleGain}dB</span>
+                <span className={isDark ? 'text-cyan-400 font-extrabold' : 'text-cyan-700 font-extrabold'}>
+                  +{settings.trebleGain}dB
+                </span>
               </div>
               <input
                 id="treble-gain-slider"
@@ -409,23 +493,27 @@ export const AudioSettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 step="1"
                 value={settings.trebleGain}
                 onChange={(e) => handleTrebleGainChange(Number(e.target.value))}
-                className="w-full accent-cyan-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg"
+                className="w-full accent-cyan-500 cursor-pointer h-1.5 bg-slate-300 dark:bg-slate-800 rounded-lg"
               />
             </div>
           </div>
 
           {/* 4. Master Volume & Speech Speed */}
           <div className="pt-4 space-y-3">
-            <label className="text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-1.5">
-              <Volume2 className="w-4 h-4 text-cyan-400" />
+            <label className={`text-xs sm:text-sm font-bold flex items-center gap-1.5 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+              <Volume2 className="w-4 h-4 text-cyan-500" />
               مستوى الصوت العام وسرعة النطق
             </label>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="bg-[#0c1426] p-2.5 rounded-xl border border-slate-800 space-y-1.5">
-                <div className="flex items-center justify-between text-xs font-bold text-slate-200">
+              <div
+                className={`p-2.5 rounded-xl border space-y-1.5 ${
+                  isDark ? 'bg-[#0c1426] border-slate-800' : 'bg-slate-50 border-slate-200'
+                }`}
+              >
+                <div className={`flex items-center justify-between text-xs font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                   <span>مستوى الصوت الرئيسي:</span>
-                  <span className="text-cyan-400">{Math.round(settings.volume * 100)}%</span>
+                  <span className={isDark ? 'text-cyan-400' : 'text-cyan-700'}>{Math.round(settings.volume * 100)}%</span>
                 </div>
                 <input
                   id="master-volume-slider"
@@ -435,14 +523,18 @@ export const AudioSettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                   step="0.05"
                   value={settings.volume}
                   onChange={(e) => handleVolumeChange(Number(e.target.value))}
-                  className="w-full accent-cyan-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg"
+                  className="w-full accent-cyan-500 cursor-pointer h-1.5 bg-slate-300 dark:bg-slate-800 rounded-lg"
                 />
               </div>
 
-              <div className="bg-[#0c1426] p-2.5 rounded-xl border border-slate-800 space-y-1.5">
-                <div className="flex items-center justify-between text-xs font-bold text-slate-200">
+              <div
+                className={`p-2.5 rounded-xl border space-y-1.5 ${
+                  isDark ? 'bg-[#0c1426] border-slate-800' : 'bg-slate-50 border-slate-200'
+                }`}
+              >
+                <div className={`flex items-center justify-between text-xs font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                   <span>سرعة قراءة التلميحات:</span>
-                  <span className="text-cyan-400">{settings.ttsRate}x</span>
+                  <span className={isDark ? 'text-cyan-400' : 'text-cyan-700'}>{settings.ttsRate}x</span>
                 </div>
                 <input
                   id="tts-rate-slider"
@@ -452,7 +544,7 @@ export const AudioSettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                   step="0.05"
                   value={settings.ttsRate}
                   onChange={(e) => handleRateChange(Number(e.target.value))}
-                  className="w-full accent-cyan-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg"
+                  className="w-full accent-cyan-500 cursor-pointer h-1.5 bg-slate-300 dark:bg-slate-800 rounded-lg"
                 />
               </div>
             </div>
@@ -477,7 +569,11 @@ export const AudioSettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                   soundEngine.setEnvironment('auto');
                 }}
                 title="استعادة الإعدادات الافتراضية"
-                className="bg-slate-800 hover:bg-slate-750 text-slate-300 p-2 rounded-xl border border-slate-700 active:scale-90 transition-transform cursor-pointer"
+                className={`p-2 rounded-xl border active:scale-90 transition-transform cursor-pointer ${
+                  isDark
+                    ? 'bg-slate-800 hover:bg-slate-750 text-slate-300 border-slate-700'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
+                }`}
               >
                 <RotateCcw className="w-4 h-4" />
               </button>
@@ -487,8 +583,14 @@ export const AudioSettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Footer */}
-        <div className="bg-[#060a14] p-3 sm:p-4 border-t border-slate-800/80 flex items-center justify-between">
-          <div className="text-[11px] text-slate-400 font-semibold">
+        <div
+          className={`p-3 sm:p-4 border-t flex items-center justify-between ${
+            isDark
+              ? 'bg-[#060a14] border-slate-800/80'
+              : 'bg-slate-50 border-slate-200'
+          }`}
+        >
+          <div className={`text-[11px] font-semibold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
             ✨ تم تفعيل معالجة الصوت DSP التلقائية
           </div>
           <button

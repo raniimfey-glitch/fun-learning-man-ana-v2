@@ -1,3 +1,5 @@
+export type ThemeMode = 'dark' | 'light';
+
 export type CategoryId = 'animals' | 'jobs' | 'fruits' | 'school' | 'body' | 'transport' | 'all';
 
 export interface Question {

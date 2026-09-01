@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Question } from '../types';
+import { Question, ThemeMode } from '../types';
 import { soundEngine } from '../services/soundEngine';
-import { Volume2, VolumeX, Sparkles, Lightbulb } from 'lucide-react';
+import { Volume2, Sparkles, Lightbulb } from 'lucide-react';
 
 interface Props {
+  theme: ThemeMode;
   questions: Question[];
   onFinishGame: (score: number, correct: number, wrong: number) => void;
   onGoHome: () => void;
@@ -11,11 +12,13 @@ interface Props {
 }
 
 export const GameScreen: React.FC<Props> = ({
+  theme,
   questions,
   onFinishGame,
   onGoHome,
   onTriggerConfetti,
 }) => {
+  const isDark = theme === 'dark';
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentClueIndex, setCurrentClueIndex] = useState(0);
   const [score, setScore] = useState(0);
@@ -24,9 +27,18 @@ export const GameScreen: React.FC<Props> = ({
   const [answered, setAnswered] = useState(false);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [shuffledChoices, setShuffledChoices] = useState<string[]>([]);
+  const [isSpeaking, setIsSpeaking] = useState(soundEngine.isSpeaking);
 
   const currentQ = questions[currentIndex];
   const isLastQuestion = currentIndex >= questions.length - 1;
+
+  // Listen to SoundEngine speech state changes
+  useEffect(() => {
+    const unsub = soundEngine.subscribeSpeech((speaking) => {
+      setIsSpeaking(speaking);
+    });
+    return unsub;
+  }, []);
 
   // Initialize or load new question
   useEffect(() => {
@@ -58,7 +70,7 @@ export const GameScreen: React.FC<Props> = ({
     soundEngine.speak(nextClue);
   };
 
-  // Check answer
+  // Check answer and speak result + educational fact
   const handleSelectChoice = (choiceName: string) => {
     if (answered || !currentQ) return;
     setAnswered(true);
@@ -72,12 +84,32 @@ export const GameScreen: React.FC<Props> = ({
       setCorrectCount((prev) => prev + 1);
       soundEngine.playSuccess();
       onTriggerConfetti();
-      soundEngine.speak("أَحْسَنْتَ! إِجَابَةٌ صَحِيحَةٌ");
+      
+      const speechText = currentQ.fact 
+        ? `أَحْسَنْتَ! إِجَابَةٌ صَحِيحَةٌ. هَلْ تَعَلَّمْتَ الْيَوْمَ؟ ${currentQ.fact}`
+        : "أَحْسَنْتَ! إِجَابَةٌ صَحِيحَةٌ";
+      setTimeout(() => {
+        soundEngine.speak(speechText);
+      }, 150);
     } else {
       setWrongCount((prev) => prev + 1);
       soundEngine.playError();
-      soundEngine.speak(`الْإِجَابَةُ الصَّحِيحَةُ هِيَ: ${currentQ.answer}`);
+      
+      const speechText = currentQ.fact
+        ? `الْإِجَابَةُ الصَّحِيحَةُ هِيَ: ${currentQ.answer}. هَلْ تَعَلَّمْتَ الْيَوْمَ؟ ${currentQ.fact}`
+        : `الْإِجَابَةُ الصَّحِيحَةُ هِيَ: ${currentQ.answer}`;
+      setTimeout(() => {
+        soundEngine.speak(speechText);
+      }, 150);
     }
+  };
+
+  // Re-read educational fact
+  const handleSpeakFact = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (!currentQ || !currentQ.fact) return;
+    soundEngine.playClick();
+    soundEngine.speak(`هَلْ تَعَلَّمْتَ الْيَوْمَ؟ ${currentQ.fact}`);
   };
 
   // Re-read current clues
@@ -98,7 +130,7 @@ export const GameScreen: React.FC<Props> = ({
     }
   };
 
-  const progressPct = ((currentIndex + 1) / questions.length) * 100;
+  const progressPct = questions.length > 0 ? ((currentIndex + 1) / questions.length) * 100 : 0;
   const remainingClues = currentQ ? currentQ.clues.length - 1 - currentClueIndex : 0;
 
   if (!currentQ) return null;
@@ -114,24 +146,46 @@ export const GameScreen: React.FC<Props> = ({
             soundEngine.stopSpeaking();
             onGoHome();
           }}
-          className="border border-slate-700 hover:border-slate-500 bg-[#090e1c]/80 rounded-xl px-3 py-1 text-slate-300 hover:text-white text-xs sm:text-sm font-bold active:scale-95 transition-all cursor-pointer shadow-xs"
+          className={`border rounded-xl px-3 py-1 text-xs sm:text-sm font-bold active:scale-95 transition-all cursor-pointer shadow-xs ${
+            isDark
+              ? 'border-slate-700 hover:border-slate-500 bg-[#090e1c]/80 text-slate-300 hover:text-white'
+              : 'border-slate-300 hover:border-slate-400 bg-white text-slate-700 hover:text-slate-900'
+          }`}
         >
           ← رجوع
         </button>
 
         <div className="flex items-center gap-2">
-          <div className="bg-[#0c1324] border border-slate-800 rounded-xl px-3 py-1 text-xs sm:text-sm font-bold text-cyan-300 shadow-xs flex items-center gap-1">
+          <div
+            className={`border rounded-xl px-3 py-1 text-xs sm:text-sm font-bold shadow-xs flex items-center gap-1 ${
+              isDark
+                ? 'bg-[#0c1324] border-slate-800 text-cyan-300'
+                : 'bg-white border-slate-200 text-cyan-700'
+            }`}
+          >
             ⭐ <span id="score-display">{score}</span>
           </div>
 
-          <div className="bg-[#0c1324] border border-slate-800 rounded-xl px-3 py-1 text-xs sm:text-sm font-bold text-slate-300 shadow-xs">
-            سؤال <span id="q-num" className="text-cyan-400">{currentIndex + 1}</span> / <span id="q-total">{questions.length}</span>
+          <div
+            className={`border rounded-xl px-3 py-1 text-xs sm:text-sm font-bold shadow-xs ${
+              isDark
+                ? 'bg-[#0c1324] border-slate-800 text-slate-300'
+                : 'bg-white border-slate-200 text-slate-700'
+            }`}
+          >
+            سؤال <span id="q-num" className={isDark ? 'text-cyan-400' : 'text-cyan-600 font-extrabold'}>{currentIndex + 1}</span> / <span id="q-total">{questions.length}</span>
           </div>
         </div>
       </div>
 
       {/* Progress Bar */}
-      <div className="bg-slate-900 rounded-full h-1.5 mb-3.5 overflow-hidden border border-slate-800/80">
+      <div
+        className={`rounded-full h-1.5 mb-3.5 overflow-hidden border ${
+          isDark
+            ? 'bg-slate-900 border-slate-800/80'
+            : 'bg-slate-200 border-slate-300/80'
+        }`}
+      >
         <div
           id="progress-bar"
           className="h-full bg-gradient-to-r from-blue-500 via-cyan-400 to-teal-400 rounded-full shadow-[0_0_12px_rgba(6,182,212,0.6)] transition-all duration-500 ease-out"
@@ -140,18 +194,32 @@ export const GameScreen: React.FC<Props> = ({
       </div>
 
       {/* Mystery Clues Box */}
-      <div className="bg-[#090e1d]/95 backdrop-blur-xs rounded-2xl p-4 text-center mb-3.5 shadow-[0_8px_30px_rgba(0,0,0,0.5)] border border-slate-800">
-        <div className="flex items-center justify-between text-slate-400 text-xs mb-2.5">
-          <span className="flex items-center gap-1 font-semibold text-slate-300">
-            <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
+      <div
+        className={`rounded-2xl p-4 text-center mb-3.5 border transition-colors ${
+          isDark
+            ? 'bg-[#090e1d]/95 backdrop-blur-xs border-slate-800 shadow-[0_8px_30px_rgba(0,0,0,0.5)]'
+            : 'bg-white/95 backdrop-blur-xs border-slate-200 shadow-[0_4px_20px_rgba(0,0,0,0.06)]'
+        }`}
+      >
+        <div className="flex items-center justify-between text-xs mb-2.5">
+          <span
+            className={`flex items-center gap-1 font-semibold ${
+              isDark ? 'text-slate-300' : 'text-slate-700'
+            }`}
+          >
+            <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
             من أنا؟ اقرأ التلميحات
           </span>
           <button
             onClick={handleRepeatClues}
-            className="text-cyan-300 hover:text-cyan-200 text-[11px] font-semibold flex items-center gap-1 bg-slate-800/80 hover:bg-slate-700/80 px-2.5 py-0.5 rounded-lg border border-slate-700 cursor-pointer active:scale-95 transition-all"
+            className={`text-[11px] font-semibold flex items-center gap-1 px-2.5 py-0.5 rounded-lg border cursor-pointer active:scale-95 transition-all ${
+              isDark
+                ? 'bg-slate-800/80 hover:bg-slate-700 text-cyan-300 border-slate-700'
+                : 'bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border-cyan-200'
+            }`}
             title="إعادة نطق التلميحات"
           >
-            <Volume2 className="w-3 h-3 text-cyan-400" />
+            <Volume2 className={`w-3 h-3 ${isDark ? 'text-cyan-400' : 'text-cyan-600'}`} />
             استمع 🔊
           </button>
         </div>
@@ -161,12 +229,16 @@ export const GameScreen: React.FC<Props> = ({
           {currentQ.clues.slice(0, currentClueIndex + 1).map((clue, idx) => (
             <div
               key={idx}
-              className="bg-slate-900/90 border border-slate-700/60 rounded-xl py-2 px-3 text-slate-100 text-sm sm:text-base text-right flex items-center gap-2 animate-slideDown shadow-xs"
+              className={`rounded-xl py-2 px-3 text-sm sm:text-base text-right flex items-center gap-2 animate-slideDown shadow-xs border ${
+                isDark
+                  ? 'bg-slate-900/90 border-slate-700/60 text-slate-100'
+                  : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
             >
               <span className="w-5 h-5 rounded-full bg-cyan-600 text-white text-xs font-bold flex items-center justify-center shrink-0 shadow-[0_0_8px_rgba(6,182,212,0.4)]">
                 {idx + 1}
               </span>
-              <span className="font-medium flex-1 text-slate-100">{clue}</span>
+              <span className="font-medium flex-1">{clue}</span>
             </div>
           ))}
         </div>
@@ -178,8 +250,12 @@ export const GameScreen: React.FC<Props> = ({
           disabled={remainingClues <= 0 || answered}
           className={`py-2 px-4 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer ${
             remainingClues > 0 && !answered
-              ? 'bg-slate-800/80 hover:bg-slate-700/80 text-cyan-300 border-cyan-500/30 hover:border-cyan-400 active:scale-95 shadow-xs'
-              : 'bg-slate-900/40 text-slate-600 border-slate-800/60 opacity-50 cursor-not-allowed'
+              ? isDark
+                ? 'bg-slate-800/80 hover:bg-slate-700/80 text-cyan-300 border-cyan-500/30 hover:border-cyan-400 active:scale-95 shadow-xs'
+                : 'bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border-cyan-300 hover:border-cyan-400 active:scale-95 shadow-xs'
+              : isDark
+                ? 'bg-slate-900/40 text-slate-600 border-slate-800/60 opacity-50 cursor-not-allowed'
+                : 'bg-slate-100 text-slate-400 border-slate-200 opacity-50 cursor-not-allowed'
           }`}
         >
           {remainingClues > 0
@@ -189,7 +265,11 @@ export const GameScreen: React.FC<Props> = ({
       </div>
 
       {/* Choices Grid */}
-      <p className="text-center text-slate-300 text-xs sm:text-sm font-bold mb-2">
+      <p
+        className={`text-center text-xs sm:text-sm font-bold mb-2 ${
+          isDark ? 'text-slate-300' : 'text-slate-700'
+        }`}
+      >
         اختر الإجابة الصحيحة:
       </p>
 
@@ -198,14 +278,23 @@ export const GameScreen: React.FC<Props> = ({
           const isCorrect = name === currentQ.answer;
           const isSelected = selectedChoice === name;
 
-          let cardStyle = 'border-slate-800 bg-[#0c1324]/90 text-slate-200 hover:border-cyan-500/50 hover:bg-[#111a32] shadow-[0_4px_16px_rgba(0,0,0,0.3)]';
+          let cardStyle = isDark
+            ? 'border-slate-800 bg-[#0c1324]/90 text-slate-200 hover:border-cyan-500/50 hover:bg-[#111a32] shadow-[0_4px_16px_rgba(0,0,0,0.3)]'
+            : 'border-slate-200 bg-white text-slate-800 hover:border-cyan-400 hover:bg-cyan-50/40 shadow-[0_2px_12px_rgba(0,0,0,0.06)]';
+
           if (answered) {
             if (isCorrect) {
-              cardStyle = 'border-emerald-500/90 bg-emerald-950/50 text-emerald-200 font-bold scale-[1.02] shadow-[0_0_20px_rgba(16,185,129,0.25)] animate-popIn';
+              cardStyle = isDark
+                ? 'border-emerald-500/90 bg-emerald-950/50 text-emerald-200 font-bold scale-[1.02] shadow-[0_0_20px_rgba(16,185,129,0.25)] animate-popIn'
+                : 'border-emerald-500 bg-emerald-50 text-emerald-800 font-bold scale-[1.02] shadow-[0_0_15px_rgba(16,185,129,0.2)] animate-popIn';
             } else if (isSelected && !isCorrect) {
-              cardStyle = 'border-rose-500/90 bg-rose-950/50 text-rose-200 opacity-90 shadow-[0_0_20px_rgba(244,63,94,0.25)] animate-shake';
+              cardStyle = isDark
+                ? 'border-rose-500/90 bg-rose-950/50 text-rose-200 opacity-90 shadow-[0_0_20px_rgba(244,63,94,0.25)] animate-shake'
+                : 'border-rose-500 bg-rose-50 text-rose-800 opacity-90 shadow-[0_0_15px_rgba(244,63,94,0.2)] animate-shake';
             } else {
-              cardStyle = 'border-slate-850 bg-slate-950/40 opacity-40 text-slate-500';
+              cardStyle = isDark
+                ? 'border-slate-850 bg-slate-950/40 opacity-40 text-slate-500'
+                : 'border-slate-200 bg-slate-100 opacity-40 text-slate-400';
             }
           }
 
@@ -218,7 +307,7 @@ export const GameScreen: React.FC<Props> = ({
                 !answered ? 'active:scale-95' : ''
               }`}
             >
-              <span className="text-5xl sm:text-6xl block leading-tight mb-1 drop-shadow-md">
+              <span className="text-5xl sm:text-6xl block leading-tight mb-1 drop-shadow-sm">
                 {currentQ.emojis[name] || '❓'}
               </span>
               <span className="text-sm sm:text-base font-bold block">
@@ -235,8 +324,12 @@ export const GameScreen: React.FC<Props> = ({
           id="result-msg"
           className={`mt-3 p-2.5 rounded-xl text-center text-sm sm:text-base font-bold animate-slideDown shadow-sm ${
             selectedChoice === currentQ.answer
-              ? 'bg-emerald-950/60 text-emerald-200 border border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
-              : 'bg-rose-950/60 text-rose-200 border border-rose-500/50 shadow-[0_0_15px_rgba(244,63,94,0.15)]'
+              ? isDark
+                ? 'bg-emerald-950/60 text-emerald-200 border border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
+                : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+              : isDark
+                ? 'bg-rose-950/60 text-rose-200 border border-rose-500/50 shadow-[0_0_15px_rgba(244,63,94,0.15)]'
+                : 'bg-rose-100 text-rose-900 border border-rose-300'
           }`}
         >
           {selectedChoice === currentQ.answer ? (
@@ -249,17 +342,56 @@ export const GameScreen: React.FC<Props> = ({
         </div>
       )}
 
-      {/* Educational Fact Card "تعلّمت اليوم" */}
+      {/* Educational Fact Card "هل تعلمت اليوم؟" */}
       {answered && currentQ.fact && (
         <div
           id="fact-card"
-          className="mt-2.5 bg-[#16140d]/90 border border-amber-500/30 rounded-2xl p-3 text-right animate-slideDown shadow-[0_4px_16px_rgba(0,0,0,0.3)]"
+          onClick={handleSpeakFact}
+          title="اضغط للاستماع للمعلومة بصوت عربي فصيح"
+          className={`mt-3 rounded-2xl p-3.5 text-right animate-slideDown border transition-all cursor-pointer select-none group ${
+            isSpeaking
+              ? isDark
+                ? 'bg-[#1e1b10] border-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.25)] ring-2 ring-amber-500/30'
+                : 'bg-amber-100/90 border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.2)] ring-2 ring-amber-400/40'
+              : isDark
+                ? 'bg-[#16140d]/95 hover:bg-[#1c190f] border-amber-500/40 shadow-[0_4px_20px_rgba(245,158,11,0.15)]'
+                : 'bg-amber-50/90 hover:bg-amber-100/70 border-amber-300 shadow-[0_2px_14px_rgba(245,158,11,0.12)]'
+          }`}
         >
-          <div className="text-xs font-bold text-amber-400 flex items-center gap-1 mb-1">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            هل تعلمت اليوم؟
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div
+              className={`text-xs sm:text-sm font-black flex items-center gap-1.5 ${
+                isDark ? 'text-amber-300' : 'text-amber-800'
+              }`}
+            >
+              <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
+              <span>هَلْ تَعَلَّمْتَ الْيَوْمَ؟</span>
+            </div>
+
+            {/* Listen / Replay Speech Button */}
+            <button
+              id="speak-fact-btn"
+              onClick={handleSpeakFact}
+              title="الاستماع للمعلومة بصوت نقي"
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer border active:scale-95 shadow-xs ${
+                isSpeaking
+                  ? 'bg-amber-500 text-slate-950 border-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.4)] font-black'
+                  : isDark
+                    ? 'bg-amber-950/70 group-hover:bg-amber-900/90 text-amber-200 border-amber-500/40'
+                    : 'bg-amber-100 group-hover:bg-amber-200 text-amber-900 border-amber-300'
+              }`}
+            >
+              <Volume2 className={`w-3.5 h-3.5 ${isSpeaking ? 'animate-bounce text-slate-950' : 'text-amber-600'}`} />
+              <span>{isSpeaking ? 'جاري القراءة 🎙️' : 'استمع 🔊'}</span>
+            </button>
           </div>
-          <div id="fact-text" className="text-xs sm:text-sm text-amber-100/90 leading-relaxed font-medium">
+
+          <div
+            id="fact-text"
+            className={`text-xs sm:text-sm leading-relaxed font-semibold pr-1 ${
+              isDark ? 'text-amber-100/95' : 'text-amber-950'
+            }`}
+          >
             {currentQ.fact}
           </div>
         </div>

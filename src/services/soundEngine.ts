@@ -615,6 +615,9 @@ class SoundEngine {
 
   // --- SPEECH SYNTHESIS (TTS) ---
 
+  private activeUtterance: SpeechSynthesisUtterance | null = null;
+  private keepAliveInterval: number | null = null;
+
   private initTTS() {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
 
@@ -624,11 +627,6 @@ class SoundEngine {
         if (v && v.length > 0) {
           this.voices = v;
           this.ttsReady = true;
-          if (this.pendingSpeak) {
-            const text = this.pendingSpeak;
-            this.pendingSpeak = null;
-            this.speak(text);
-          }
         }
       } catch {
         // Ignore
@@ -638,28 +636,73 @@ class SoundEngine {
     try {
       window.speechSynthesis.onvoiceschanged = load;
       load();
-      setTimeout(load, 400);
-      setTimeout(load, 1200);
+      setTimeout(load, 250);
+      setTimeout(load, 1000);
     } catch {
       // Ignore
     }
   }
 
   public getBestArabicVoice(): SpeechSynthesisVoice | null {
-    if (this.voices.length === 0) {
+    try {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        const currentVoices = window.speechSynthesis.getVoices();
+        if (currentVoices && currentVoices.length > 0) {
+          this.voices = currentVoices;
+        }
+      }
+    } catch {
+      // Ignore
+    }
+
+    if (!this.voices || this.voices.length === 0) return null;
+
+    // Prefer high quality Arabic voices
+    const arVoices = this.voices.filter(v => 
+      v.lang.toLowerCase().startsWith('ar') || 
+      v.name.toLowerCase().includes('arabic') ||
+      v.name.includes('العربية') ||
+      v.name.toLowerCase().includes('maged') ||
+      v.name.toLowerCase().includes('tarik') ||
+      v.name.toLowerCase().includes('laila') ||
+      v.name.toLowerCase().includes('maryam') ||
+      v.name.toLowerCase().includes('salma') ||
+      v.name.toLowerCase().includes('zayd')
+    );
+
+    if (arVoices.length > 0) {
+      // Prioritize natural / neural / Saudi / Egyptian / Standard Arabic voices
+      return (
+        arVoices.find(v => v.lang === 'ar-SA') ||
+        arVoices.find(v => v.lang === 'ar-EG') ||
+        arVoices.find(v => v.lang === 'ar-AE') ||
+        arVoices.find(v => v.lang.startsWith('ar')) ||
+        arVoices[0]
+      );
+    }
+
+    return null;
+  }
+
+  public isSpeaking = false;
+  private speechListeners: Set<(isSpeaking: boolean) => void> = new Set();
+
+  public subscribeSpeech(listener: (isSpeaking: boolean) => void) {
+    this.speechListeners.add(listener);
+    return () => {
+      this.speechListeners.delete(listener);
+    };
+  }
+
+  private setSpeaking(speaking: boolean) {
+    this.isSpeaking = speaking;
+    this.speechListeners.forEach(listener => {
       try {
-        this.voices = window.speechSynthesis.getVoices();
+        listener(speaking);
       } catch {
         // Ignore
       }
-    }
-    return (
-      this.voices.find(v => v.lang === 'ar-SA') ||
-      this.voices.find(v => v.lang === 'ar-EG') ||
-      this.voices.find(v => v.lang === 'ar-DZ') ||
-      this.voices.find(v => v.lang.startsWith('ar')) ||
-      null
-    );
+    });
   }
 
   // Arabic Phonetic Normalizer to guarantee 100% accurate pronunciation across all SpeechSynthesis engines
@@ -674,76 +717,144 @@ class SoundEngine {
     res = res.replace(/\bم[ُِْ]?ل[ُِْ]?ك\s+الغابة/g, 'مَلِكُ الْغَابَةِ');
     res = res.replace(/\bم[ُِْ]?ل[ُِْ]?ك\s+الْغَابَةِ?/g, 'مَلِكُ الْغَابَةِ');
 
+    // "هل تعلمت اليوم" phonetic stabilization
+    res = res.replace(/هل\s+تعلمت\s+اليوم[؟?]?/g, 'هَلْ تَعَلَّمْتَ الْيَوْمَ؟');
+    res = res.replace(/هَلْ\s+تَعَلَّمْتَ\s+الْيَوْمَ[؟?]?/g, 'هَلْ تَعَلَّمْتَ الْيَوْمَ؟');
+    res = res.replace(/تعلّمت\s+اليوم[؟?]?/g, 'هَلْ تَعَلَّمْتَ الْيَوْمَ؟');
+
     // General common pronunciation enhancements
     res = res.replace(/\bأحسنت\b/g, 'أَحْسَنْتَ');
     res = res.replace(/\bإجابة صحيحة\b/g, 'إِجَابَةٌ صَحِيحَةٌ');
     res = res.replace(/\bالإجابة الصحيحة هي\b/g, 'الْإِجَابَةُ الصَّحِيحَةُ هِيَ');
     res = res.replace(/\bمن أنا\b/g, 'مَنْ أَنَا؟');
+    res = res.replace(/\bمعلومة مفيدة\b/g, 'مَعْلُومَةٌ مُفِيدَةٌ:');
+
+    // Common category items pronunciation safeguard
+    res = res.replace(/\bالأسد\b/g, 'الْأَسَدُ');
+    res = res.replace(/\bالفيل\b/g, 'الْفِيلُ');
+    res = res.replace(/\bالببغاء\b/g, 'الْبَبَّغَاءُ');
+    res = res.replace(/\bالسمكة\b/g, 'السَّمَكَةُ');
+    res = res.replace(/\bالأرنب\b/g, 'الْأَرْنَبُ');
+    res = res.replace(/\bالقرد\b/g, 'الْقِرْدُ');
+    res = res.replace(/\bالطبيب\b/g, 'الطَّبِيبُ');
+    res = res.replace(/\bالمعلم\b/g, 'الْمُعَلِّمُ');
+    res = res.replace(/\bرجل الإطفاء\b/g, 'رَجُلُ الْإِطْفَاءِ');
+    res = res.replace(/\bالطباخ\b/g, 'الطَّبَّاخُ');
+    res = res.replace(/\bالمزارع\b/g, 'الْمُزَارِعُ');
+    res = res.replace(/\bالتفاحة\b/g, 'التُّفَّاحَةُ');
+    res = res.replace(/\bالموزة\b/g, 'الْمَوْزَةُ');
+    res = res.replace(/\bالجزرة\b/g, 'الْجَزَرَةُ');
+    res = res.replace(/\bالبطيخ\b/g, 'الْبِطِّيخُ');
+    res = res.replace(/\bالفراولة\b/g, 'الْفَرَاوِلَةُ');
+    res = res.replace(/\bالمسطرة\b/g, 'الْمِسْطَرَةُ');
+    res = res.replace(/\bالقلم الرصاص\b/g, 'الْقَلَمُ الرَّصَاصُ');
+    res = res.replace(/\bالمحفظة\b/g, 'الْمِحْفَظَةُ');
+    res = res.replace(/\bالسبورة\b/g, 'السَّبُّورَةُ');
+    res = res.replace(/\bالكتاب\b/g, 'الْكِتَابُ');
+    res = res.replace(/\bالقلب\b/g, 'الْقَلْبُ');
+    res = res.replace(/\bالعين\b/g, 'الْعَيْنُ');
+    res = res.replace(/\bالأسنان\b/g, 'الْأَسْنَانُ');
+    res = res.replace(/\bالدماغ\b/g, 'الدِّمَاغُ');
+    res = res.replace(/\bاليد\b/g, 'الْيَدُ');
+    res = res.replace(/\bالأذن\b/g, 'الْأُذُنُ');
+    res = res.replace(/\bالطائرة\b/g, 'الطَّائِرَةُ');
+    res = res.replace(/\bالقطار\b/g, 'الْقِطَارُ');
+    res = res.replace(/\bالسفينة\b/g, 'السَّفِينَةُ');
+    res = res.replace(/\bالدراجة\b/g, 'الدَّرَّاجَةُ');
+    res = res.replace(/\bسيارة الإسعاف\b/g, 'سَيَّارَةُ الْإِسْعَافِ');
+    res = res.replace(/\bالحافلة المدرسية\b/g, 'الْحَافِلَةُ الْمَدْرَسِيَّةُ');
 
     return res;
   }
 
-  public speak(text: string) {
+  public speak(text: string, onEndCallback?: () => void) {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
 
     const normalizedText = this.normalizeArabicPhonetics(text);
-
-    if (!this.ttsReady || this.voices.length === 0) {
-      this.pendingSpeak = normalizedText;
-      this.initTTS();
-      return;
-    }
+    if (!normalizedText.trim()) return;
 
     try {
-      window.speechSynthesis.cancel();
+      if (this.keepAliveInterval) {
+        clearInterval(this.keepAliveInterval);
+        this.keepAliveInterval = null;
+      }
 
-      setTimeout(() => {
-        try {
-          if (window.speechSynthesis.paused) {
+      window.speechSynthesis.cancel();
+      this.setSpeaking(false);
+
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
+
+      const utterance = new SpeechSynthesisUtterance(normalizedText);
+      this.activeUtterance = utterance;
+      (window as any).__currentUtterance = utterance;
+
+      const voice = this.getBestArabicVoice();
+      if (voice) {
+        utterance.voice = voice;
+      }
+      utterance.lang = 'ar-SA';
+      utterance.rate = Math.max(0.7, Math.min(1.2, this.settings.ttsRate));
+      utterance.pitch = 1.0;
+      utterance.volume = Math.max(0.1, Math.min(1.0, this.settings.ttsVolume * this.settings.volume));
+
+      utterance.onstart = () => {
+        this.setSpeaking(true);
+        // Chrome keep-alive bug fix: periodically trigger resume during long sentences
+        this.keepAliveInterval = window.setInterval(() => {
+          if (!window.speechSynthesis.speaking) {
+            if (this.keepAliveInterval) {
+              clearInterval(this.keepAliveInterval);
+              this.keepAliveInterval = null;
+            }
+          } else {
+            window.speechSynthesis.pause();
             window.speechSynthesis.resume();
           }
+        }, 8000);
+      };
 
-          const utterance = new SpeechSynthesisUtterance(normalizedText);
-          const voice = this.getBestArabicVoice();
-          if (voice) utterance.voice = voice;
-          utterance.lang = 'ar-SA';
-          utterance.rate = this.settings.ttsRate;
-          utterance.pitch = 1.0;
-          utterance.volume = this.settings.ttsVolume * this.settings.volume;
-
-          utterance.onend = () => {
-            try {
-              window.speechSynthesis.cancel();
-            } catch {
-              // Ignore
-            }
-          };
-
-          utterance.onerror = (e) => {
-            if (e.error !== 'interrupted') {
-              try {
-                window.speechSynthesis.cancel();
-                setTimeout(() => {
-                  window.speechSynthesis.speak(utterance);
-                }, 250);
-              } catch {
-                // Ignore
-              }
-            }
-          };
-
-          window.speechSynthesis.speak(utterance);
-        } catch {
-          // Ignore
+      utterance.onend = () => {
+        if (this.keepAliveInterval) {
+          clearInterval(this.keepAliveInterval);
+          this.keepAliveInterval = null;
         }
-      }, 80);
-    } catch {
-      // Ignore
+        this.setSpeaking(false);
+        this.activeUtterance = null;
+        (window as any).__currentUtterance = null;
+        if (onEndCallback) onEndCallback();
+      };
+
+      utterance.onerror = (e) => {
+        if (this.keepAliveInterval) {
+          clearInterval(this.keepAliveInterval);
+          this.keepAliveInterval = null;
+        }
+        this.setSpeaking(false);
+        this.activeUtterance = null;
+        (window as any).__currentUtterance = null;
+        if (e.error !== 'interrupted' && e.error !== 'canceled') {
+          console.warn('Speech synthesis error:', e);
+        }
+      };
+
+      window.speechSynthesis.speak(utterance);
+    } catch (err) {
+      console.warn('Failed to speak text:', err);
+      this.setSpeaking(false);
     }
   }
 
   public stopSpeaking() {
     try {
+      if (this.keepAliveInterval) {
+        clearInterval(this.keepAliveInterval);
+        this.keepAliveInterval = null;
+      }
+      this.setSpeaking(false);
+      this.activeUtterance = null;
+      (window as any).__currentUtterance = null;
       if (typeof window !== 'undefined' && window.speechSynthesis) {
         window.speechSynthesis.cancel();
       }

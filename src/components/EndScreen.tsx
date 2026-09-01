@@ -1,7 +1,9 @@
 import React, { useEffect } from 'react';
 import { soundEngine } from '../services/soundEngine';
+import { ThemeMode } from '../types';
 
 interface Props {
+  theme: ThemeMode;
   score: number;
   maxScore: number;
   correct: number;
@@ -12,6 +14,7 @@ interface Props {
 }
 
 export const EndScreen: React.FC<Props> = ({
+  theme,
   score,
   maxScore,
   correct,
@@ -20,6 +23,7 @@ export const EndScreen: React.FC<Props> = ({
   onGoHome,
   onTriggerConfetti,
 }) => {
+  const isDark = theme === 'dark';
   const pct = maxScore > 0 ? score / maxScore : 0;
 
   let trophy = '🏆';
@@ -53,13 +57,30 @@ export const EndScreen: React.FC<Props> = ({
       <div id="end-stars" className="text-3xl mb-3 tracking-widest drop-shadow-sm">
         {stars}
       </div>
-      <div id="end-title" className="text-xl sm:text-2xl font-black text-slate-100 mb-1.5 bg-gradient-to-r from-white via-slate-200 to-slate-300 bg-clip-text text-transparent">
+      <div
+        id="end-title"
+        className={`text-xl sm:text-2xl font-black mb-1.5 ${
+          isDark
+            ? 'bg-gradient-to-r from-white via-slate-200 to-slate-300 bg-clip-text text-transparent'
+            : 'text-slate-900'
+        }`}
+      >
         {title}
       </div>
-      <div id="end-score" className="text-base sm:text-lg text-cyan-400 font-extrabold mb-1">
+      <div
+        id="end-score"
+        className={`text-base sm:text-lg font-extrabold mb-1 ${
+          isDark ? 'text-cyan-400' : 'text-cyan-700'
+        }`}
+      >
         نقاطك: {score} من {maxScore}
       </div>
-      <div id="end-detail" className="text-xs sm:text-sm text-slate-400 font-semibold mb-6">
+      <div
+        id="end-detail"
+        className={`text-xs sm:text-sm font-semibold mb-6 ${
+          isDark ? 'text-slate-400' : 'text-slate-600'
+        }`}
+      >
         ✅ إجابات صحيحة: {correct} &nbsp;&nbsp;|&nbsp;&nbsp; ❌ خاطئة: {wrong}
       </div>
 
@@ -81,7 +102,11 @@ export const EndScreen: React.FC<Props> = ({
             soundEngine.playClick();
             onGoHome();
           }}
-          className="flex-1 bg-[#0c1324] hover:bg-[#111a32] text-slate-300 hover:text-white border border-slate-700 hover:border-slate-500 rounded-xl py-3 px-5 text-sm sm:text-base font-bold shadow-xs active:scale-95 transition-all cursor-pointer"
+          className={`flex-1 rounded-xl py-3 px-5 text-sm sm:text-base font-bold shadow-xs active:scale-95 transition-all cursor-pointer border ${
+            isDark
+              ? 'bg-[#0c1324] hover:bg-[#111a32] text-slate-300 hover:text-white border-slate-700 hover:border-slate-500'
+              : 'bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-900 border-slate-300 hover:border-slate-400'
+          }`}
         >
           🏠 الرئيسية
         </button>

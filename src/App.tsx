@@ -5,9 +5,9 @@
 /**
  * ================================================================================
  *   Project Name : التعليم الممتع | Fun Learning
- *   Version      : ألعاب تعليمية : من أنا - v2.5 (مع نظام صوتي ومعادل ذكي متطور)
+ *   Version      : ألعاب تعليمية : من أنا - v2.6 (الوضع الليلي والنهاري + دعم كامل للأوفلاين)
  *   Developer    : Samira Abdessadok "رنيم فاي" | سميرة عبد الصّدوق
- *   Date         : جوان 2026
+ *   Date         : 2026
  * ================================================================================
  *   Copyright (c) 2026 Samira Abdessadok "رنيم فاي". All Rights Reserved.
  *   جميع الحقوق محفوظة © 2026 سميرة عبد الصّدوق "رنيم فاي".
@@ -23,7 +23,7 @@ import { EndScreen } from './components/EndScreen';
 import { AudioSettingsModal } from './components/AudioSettingsModal';
 import { Confetti } from './components/Confetti';
 import { GAME_DATA } from './data/gameData';
-import { CategoryId, Question } from './types';
+import { CategoryId, Question, ThemeMode } from './types';
 import { soundEngine } from './services/soundEngine';
 
 type ScreenState = 'splash' | 'categories' | 'game' | 'end';
@@ -38,6 +38,51 @@ export default function App() {
   const [wrongAnswers, setWrongAnswers] = useState(0);
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
   const [confettiTrigger, setConfettiTrigger] = useState(0);
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+
+  // Theme Management (Dark / Light mode) with persistence
+  const [theme, setTheme] = useState<ThemeMode>(() => {
+    try {
+      const saved = localStorage.getItem('man_ana_theme');
+      if (saved === 'light' || saved === 'dark') return saved;
+    } catch {
+      // Ignore
+    }
+    return 'dark';
+  });
+
+  // Apply theme to document & body
+  useEffect(() => {
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(theme);
+    document.body.className = theme;
+    
+    // Update theme-color meta tag
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', theme === 'dark' ? '#080e1c' : '#ffffff');
+    }
+
+    try {
+      localStorage.setItem('man_ana_theme', theme);
+    } catch {
+      // Ignore
+    }
+  }, [theme]);
+
+  // Online / Offline Detection
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Initialize Web Audio on any initial interaction
   useEffect(() => {
@@ -53,6 +98,10 @@ export default function App() {
       window.removeEventListener('touchstart', handleInitialUserGesture);
     };
   }, []);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
 
   const handleStartGame = (cat: CategoryId) => {
     setSelectedCategory(cat);
@@ -96,8 +145,16 @@ export default function App() {
     setConfettiTrigger(Date.now());
   };
 
+  const isDark = theme === 'dark';
+
   return (
-    <div className="min-h-screen bg-[#05070A] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(14,165,233,0.15),rgba(255,255,255,0))] flex flex-col justify-between select-none text-slate-100 font-['Tajawal',sans-serif]">
+    <div
+      className={`min-h-screen flex flex-col justify-between select-none transition-colors duration-300 font-['Tajawal',sans-serif] ${
+        isDark
+          ? 'bg-[#05070A] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(14,165,233,0.15),rgba(255,255,255,0))] text-slate-100'
+          : 'bg-[#f8fafc] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(14,165,233,0.12),rgba(241,245,249,0.6))] text-slate-900'
+      }`}
+    >
       {/* Splash Screen */}
       {currentScreen === 'splash' && (
         <SplashScreen onFinish={() => setCurrentScreen('categories')} />
@@ -108,23 +165,33 @@ export default function App() {
 
       {/* Audio Settings & DSP Equalizer Modal */}
       <AudioSettingsModal
+        theme={theme}
         isOpen={isAudioModalOpen}
         onClose={() => setIsAudioModalOpen(false)}
       />
 
       {/* Main Container */}
       <div className="w-full flex-1 flex flex-col">
-        {/* Header */}
-        <Header />
+        {/* Header with Theme Toggle and Equalizer Buttons */}
+        <Header
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          onOpenAudioSettings={() => setIsAudioModalOpen(true)}
+          isOnline={isOnline}
+        />
 
         {/* Dynamic Screen Content */}
         <main className="flex-1 flex flex-col justify-center">
           {currentScreen === 'categories' && (
-            <CategoriesScreen onSelectCategory={handleStartGame} />
+            <CategoriesScreen
+              theme={theme}
+              onSelectCategory={handleStartGame}
+            />
           )}
 
           {currentScreen === 'game' && (
             <GameScreen
+              theme={theme}
               questions={gameQuestions}
               onFinishGame={handleFinishGame}
               onGoHome={handleGoHome}
@@ -134,6 +201,7 @@ export default function App() {
 
           {currentScreen === 'end' && (
             <EndScreen
+              theme={theme}
               score={finalScore}
               maxScore={maxScore}
               correct={correctAnswers}
@@ -147,7 +215,13 @@ export default function App() {
       </div>
 
       {/* Copyright Footer */}
-      <footer className="text-center py-4 px-3 text-xs sm:text-sm text-slate-500 border-t border-slate-800/80 mt-6 font-semibold tracking-wide bg-[#060a14]/60 backdrop-blur-xs">
+      <footer
+        className={`text-center py-4 px-3 text-xs sm:text-sm border-t mt-6 font-semibold tracking-wide backdrop-blur-xs transition-colors ${
+          isDark
+            ? 'text-slate-500 border-slate-800/80 bg-[#060a14]/60'
+            : 'text-slate-500 border-slate-200 bg-white/70 shadow-xs'
+        }`}
+      >
         سميرة عبد الصّدوق &mdash; جميع الحقوق محفوظة &copy; 2026
       </footer>
     </div>
