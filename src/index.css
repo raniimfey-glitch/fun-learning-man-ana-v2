@@ -360,6 +360,97 @@ body.light ::-webkit-scrollbar-thumb:hover {
   animation: confettiFall ease-in forwards;
 }
 
+@-webkit-keyframes confettiInfinite {
+  0% {
+    -webkit-transform: translateY(-24px) rotate(0deg);
+    transform: translateY(-24px) rotate(0deg);
+    opacity: 1;
+  }
+  85% {
+    opacity: 0.9;
+  }
+  100% {
+    -webkit-transform: translateY(105vh) rotate(720deg);
+    transform: translateY(105vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+@keyframes confettiInfinite {
+  0% {
+    -webkit-transform: translateY(-24px) rotate(0deg);
+    transform: translateY(-24px) rotate(0deg);
+    opacity: 1;
+  }
+  85% {
+    opacity: 0.9;
+  }
+  100% {
+    -webkit-transform: translateY(105vh) rotate(720deg);
+    transform: translateY(105vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+@-webkit-keyframes ribbonFloat {
+  0%, 100% {
+    -webkit-transform: translateY(0px) rotate(0deg);
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    -webkit-transform: translateY(6px) rotate(15deg);
+    transform: translateY(6px) rotate(15deg);
+  }
+}
+@keyframes ribbonFloat {
+  0%, 100% {
+    -webkit-transform: translateY(0px) rotate(0deg);
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    -webkit-transform: translateY(6px) rotate(15deg);
+    transform: translateY(6px) rotate(15deg);
+  }
+}
+
+@-webkit-keyframes rainbowBar {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+@keyframes rainbowBar {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-confettiInfinite {
+  -webkit-animation: confettiInfinite linear infinite;
+  animation: confettiInfinite linear infinite;
+}
+
+.animate-ribbonFloat {
+  -webkit-animation: ribbonFloat 2.4s ease-in-out infinite;
+  animation: ribbonFloat 2.4s ease-in-out infinite;
+}
+
+.animate-rainbowBar {
+  background-size: 200% 200%;
+  -webkit-animation: rainbowBar 3s ease infinite;
+  animation: rainbowBar 3s ease infinite;
+}
+
 .animate-slideDown {
   -webkit-animation: slideDown 0.3s ease-out forwards;
   animation: slideDown 0.3s ease-out forwards;

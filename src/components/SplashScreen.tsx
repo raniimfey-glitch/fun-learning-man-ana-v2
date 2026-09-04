@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import appIcon from '../assets/images/app_icon_game_1788193924099.jpg';
 
 interface Props {
@@ -7,6 +7,8 @@ interface Props {
 
 export const SplashScreen: React.FC<Props> = ({ onFinish }) => {
   const [hide, setHide] = useState(false);
+  const onFinishRef = useRef(onFinish);
+  onFinishRef.current = onFinish;
 
   useEffect(() => {
     const timer1 = setTimeout(() => {
@@ -14,14 +16,14 @@ export const SplashScreen: React.FC<Props> = ({ onFinish }) => {
     }, 2100);
 
     const timer2 = setTimeout(() => {
-      onFinish();
+      onFinishRef.current();
     }, 2700);
 
     return () => {
       clearTimeout(timer1);
       clearTimeout(timer2);
     };
-  }, [onFinish]);
+  }, []);
 
   return (
     <div

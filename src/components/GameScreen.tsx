@@ -57,8 +57,11 @@ export const GameScreen: React.FC<Props> = ({
       soundEngine.speak(firstClue);
     }, 200);
 
-    return () => clearTimeout(timer);
-  }, [currentIndex, currentQ]);
+    return () => {
+      clearTimeout(timer);
+      soundEngine.stopSpeaking();
+    };
+  }, [currentIndex, currentQ?.name]);
 
   // Handle showing next clue
   const handleShowNextClue = () => {
@@ -122,10 +125,11 @@ export const GameScreen: React.FC<Props> = ({
 
   // Go to next question or end screen
   const handleNextQuestion = () => {
-    soundEngine.playClick();
     if (isLastQuestion) {
+      soundEngine.stopSpeaking();
       onFinishGame(score, correctCount, wrongCount);
     } else {
+      soundEngine.playClick();
       setCurrentIndex((prev) => prev + 1);
     }
   };

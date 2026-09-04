@@ -3,32 +3,38 @@ import { ThemeMode } from '../types';
 import appIcon from '../assets/images/app_icon_game_1788193924099.jpg';
 import { Sun, Moon, WifiOff } from 'lucide-react';
 import { soundEngine } from '../services/soundEngine';
+import { TopBarConfetti } from './TopBarConfetti';
 
 interface Props {
   theme: ThemeMode;
   onToggleTheme: () => void;
-  onOpenAudioSettings?: () => void;
   isOnline?: boolean;
+  isEndScreen?: boolean;
 }
 
 export const Header: React.FC<Props> = ({
   theme,
   onToggleTheme,
   isOnline = true,
+  isEndScreen = false,
 }) => {
   const isDark = theme === 'dark';
 
   return (
     <header
       id="main-header"
-      className={`py-3 px-3 sm:px-4 text-center relative border-b transition-colors duration-300 ${
+      className={`relative text-center border-b transition-colors duration-300 ${
         isDark
           ? 'bg-[#080e1c]/90 backdrop-blur-md border-slate-800/90 shadow-lg'
           : 'bg-white/90 backdrop-blur-md border-slate-200/90 shadow-sm'
       }`}
     >
-      {/* Top Controls Bar */}
-      <div className="max-w-md mx-auto flex items-center justify-between gap-2 mb-1.5">
+      {/* Animated Festive Confetti Top Ribbon when on End / Encouragement Screen */}
+      {isEndScreen && <TopBarConfetti isDark={isDark} />}
+
+      <div className="py-3 px-3 sm:px-4">
+        {/* Top Controls Bar */}
+        <div className="max-w-md mx-auto flex items-center justify-between gap-2 mb-1.5">
         {/* Theme Toggle Button */}
         <button
           id="theme-toggle-btn"
@@ -106,6 +112,7 @@ export const Header: React.FC<Props> = ({
       >
         خمّن من التلميحات
       </p>
+      </div>
     </header>
   );
 };

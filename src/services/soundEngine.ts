@@ -521,44 +521,149 @@ class SoundEngine {
     }
   }
 
-  // 5. Grand Fanfare: End game triumph
+  // 5. Grand Fanfare & Realistic Cheering with Stadium Applause
   public playFanfare() {
+    this.playCheersAndApplause();
+  }
+
+  // Realistic Cheering + Crowd Applause Claps + Celebration Fanfare (Smooth & Click-Free)
+  public playCheersAndApplause() {
     try {
       const ctx = this.initAudioContext();
+      if (!ctx) return;
       const now = ctx.currentTime;
 
-      const chord = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
-      chord.forEach((freq, idx) => {
+      // 1. Victory Brass Chords & Triumphant Fanfare (No clicking, soft attacks)
+      const fanfareNotes = [
+        { f: 523.25, time: 0.0, dur: 0.22, vol: 0.28 },   // C5
+        { f: 523.25, time: 0.2, dur: 0.22, vol: 0.28 },   // C5
+        { f: 523.25, time: 0.4, dur: 0.22, vol: 0.30 },   // C5
+        { f: 659.25, time: 0.6, dur: 0.55, vol: 0.35 },   // E5
+        { f: 587.33, time: 1.15, dur: 0.25, vol: 0.30 },  // D5
+        { f: 659.25, time: 1.4, dur: 0.3, vol: 0.32 },   // E5
+        { f: 783.99, time: 1.7, dur: 1.3, vol: 0.40 },    // G5 (Long triumph)
+        { f: 1046.50, time: 1.7, dur: 1.4, vol: 0.35 },   // C6 harmony
+      ];
+
+      fanfareNotes.forEach((n) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.type = idx < 2 ? 'triangle' : 'sine';
-        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+        osc.type = 'triangle'; // Brass trumpet warmth
+        osc.frequency.setValueAtTime(n.f, now + n.time);
 
-        gain.gain.setValueAtTime(0, now + idx * 0.08);
-        gain.gain.linearRampToValueAtTime(0.25 / Math.sqrt(idx + 1), now + idx * 0.08 + 0.04);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.08 + 1.2);
+        gain.gain.setValueAtTime(0.0001, now + n.time);
+        gain.gain.linearRampToValueAtTime(n.vol, now + n.time + 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + n.time + n.dur);
 
         osc.connect(gain);
         this.connectToDspChain(gain);
 
-        osc.start(now + idx * 0.08);
-        osc.stop(now + idx * 0.08 + 1.3);
+        osc.start(now + n.time);
+        osc.stop(now + n.time + n.dur + 0.05);
       });
 
-      // Deep cinematic boom
+      // 2. Realistic Crowd Applause using smooth continuous pink noise (Zero digital clicking/spikes)
+      const bufferLength = Math.min(ctx.sampleRate * 3.2, 145000);
+      const applauseBuffer = ctx.createBuffer(1, bufferLength, ctx.sampleRate);
+      const output = applauseBuffer.getChannelData(0);
+
+      // Paul Kellet's smooth continuous pink noise algorithm for warm, natural clapping acoustics
+      let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+      for (let i = 0; i < bufferLength; i++) {
+        const white = Math.random() * 2 - 1;
+        b0 = 0.99886 * b0 + white * 0.0555179;
+        b1 = 0.99332 * b1 + white * 0.0750759;
+        b2 = 0.96900 * b2 + white * 0.1538520;
+        b3 = 0.86650 * b3 + white * 0.3104856;
+        b4 = 0.55000 * b4 + white * 0.5329522;
+        b5 = -0.7616 * b5 - white * 0.0168980;
+        const pink = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+        b6 = white * 0.115926;
+        output[i] = pink * 0.12;
+      }
+
+      const applauseNode = ctx.createBufferSource();
+      applauseNode.buffer = applauseBuffer;
+
+      // Bandpass filter centered at natural handclapping acoustic resonance (1350Hz)
+      const applauseFilter = ctx.createBiquadFilter();
+      applauseFilter.type = 'bandpass';
+      applauseFilter.frequency.setValueAtTime(1350, now);
+      applauseFilter.Q.setValueAtTime(1.1, now);
+
+      const applauseGain = ctx.createGain();
+      // Natural applause dynamic swell and gradual fade
+      applauseGain.gain.setValueAtTime(0.0001, now);
+      applauseGain.gain.linearRampToValueAtTime(0.32, now + 0.35);
+      applauseGain.gain.linearRampToValueAtTime(0.35, now + 1.8);
+      applauseGain.gain.exponentialRampToValueAtTime(0.0001, now + 3.1);
+
+      applauseNode.connect(applauseFilter);
+      applauseFilter.connect(applauseGain);
+      this.connectToDspChain(applauseGain);
+
+      applauseNode.start(now);
+      applauseNode.stop(now + 3.2);
+
+      // 3. Cheerful Crowd Vocal Resonances ("Yay! Woohoo!")
+      const cheerFormants = [
+        { startF: 400, endF: 620, time: 0.1, dur: 1.1, vol: 0.14 },
+        { startF: 480, endF: 720, time: 0.35, dur: 1.3, vol: 0.15 },
+        { startF: 560, endF: 840, time: 0.6, dur: 1.4, vol: 0.13 },
+        { startF: 380, endF: 640, time: 1.2, dur: 1.2, vol: 0.12 },
+        { startF: 640, endF: 920, time: 1.5, dur: 1.5, vol: 0.14 },
+      ];
+
+      cheerFormants.forEach((c) => {
+        const osc = ctx.createOscillator();
+        const cheerGain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(c.startF, now + c.time);
+        osc.frequency.exponentialRampToValueAtTime(c.endF, now + c.time + c.dur * 0.6);
+        osc.frequency.exponentialRampToValueAtTime(c.endF * 0.92, now + c.time + c.dur);
+
+        cheerGain.gain.setValueAtTime(0.0001, now + c.time);
+        cheerGain.gain.linearRampToValueAtTime(c.vol, now + c.time + c.dur * 0.3);
+        cheerGain.gain.exponentialRampToValueAtTime(0.0001, now + c.time + c.dur);
+
+        osc.connect(cheerGain);
+        this.connectToDspChain(cheerGain);
+
+        osc.start(now + c.time);
+        osc.stop(now + c.time + c.dur + 0.05);
+      });
+
+      // 4. Celebration Party Whistle / Shimmer
+      const whistle = ctx.createOscillator();
+      const whistleGain = ctx.createGain();
+      whistle.type = 'sine';
+      whistle.frequency.setValueAtTime(1400, now + 0.15);
+      whistle.frequency.linearRampToValueAtTime(2300, now + 0.4);
+      whistle.frequency.linearRampToValueAtTime(1900, now + 0.7);
+
+      whistleGain.gain.setValueAtTime(0.0001, now + 0.15);
+      whistleGain.gain.linearRampToValueAtTime(0.08, now + 0.3);
+      whistleGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.75);
+
+      whistle.connect(whistleGain);
+      this.connectToDspChain(whistleGain);
+      whistle.start(now + 0.15);
+      whistle.stop(now + 0.8);
+
+      // 5. Deep Celebration Bass Foundation Boom
       const boom = ctx.createOscillator();
       const boomGain = ctx.createGain();
       boom.type = 'sine';
-      boom.frequency.setValueAtTime(90, now);
-      boom.frequency.exponentialRampToValueAtTime(35, now + 0.8);
+      boom.frequency.setValueAtTime(95, now);
+      boom.frequency.exponentialRampToValueAtTime(36, now + 0.85);
 
-      boomGain.gain.setValueAtTime(0.4, now);
-      boomGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.9);
+      boomGain.gain.setValueAtTime(0.35, now);
+      boomGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.95);
 
       boom.connect(boomGain);
       this.connectToDspChain(boomGain);
       boom.start(now);
-      boom.stop(now + 0.95);
+      boom.stop(now + 1.0);
     } catch {
       // Ignore
     }
@@ -729,6 +834,16 @@ class SoundEngine {
     res = res.replace(/أَنَا\s+م[ُِْ]?ل[ُِْ]?ك\s+الْغَابَةِ?/g, 'أَنَا مَلِكُ الْغَابَةِ');
     res = res.replace(/\bم[ُِْ]?ل[ُِْ]?ك\s+الغابة/g, 'مَلِكُ الْغَابَةِ');
     res = res.replace(/\bم[ُِْ]?ل[ُِْ]?ك\s+الْغَابَةِ?/g, 'مَلِكُ الْغَابَةِ');
+
+    // Strict pronunciation enforcement for "حجمي" and "لوني" with prolonged madd bil-yā' (مد بالياء) and NEVER open yā' (ياء مفتوحة / حجميَ / لونيَ)
+    res = res.replace(/\bح[ًٌٍَُِّْ]?ج[ًٌٍَُِّْ]?م[ًٌٍَُِّْ]?ي[ًٌٍَُِّْ]?\b/g, 'حَجْمِيْ');
+    res = res.replace(/\bل[ًٌٍَُِّْ]?و[ًٌٍَُِّْ]?ن[ًٌٍَُِّْ]?ي[ًٌٍَُِّْ]?\b/g, 'لَوْنِيْ');
+    res = res.replace(/\bش[ًٌٍَُِّْ]?ك[ًٌٍَُِّْ]?ل[ًٌٍَُِّْ]?ي[ًٌٍَُِّْ]?\b/g, 'شَكْلِيْ');
+    res = res.replace(/\bق[ًٌٍَُِّْ]?ش[ًٌٍَُِّْ]?ر[ًٌٍَُِّْ]?ت[ًٌٍَُِّْ]?ي[ًٌٍَُِّْ]?\b/g, 'قِشْرَتِيْ');
+    res = res.replace(/\bد[ًٌٍَُِّْ]?ا[ًٌٍَُِّْ]?خ[ًٌٍَُِّْ]?ل[ًٌٍَُِّْ]?ي[ًٌٍَُِّْ]?\b/g, 'دَاخِلِيْ');
+
+    // Prevent wasl sandhi into fat-ha before hamza (e.g. لَوْنِيْ أَحْمَرُ -> لَوْنِيْ ، أَحْمَرُ)
+    res = res.replace(/(حَجْمِيْ|لَوْنِيْ|شَكْلِيْ|قِشْرَتِيْ|دَاخِلِيْ)\s+([أإآ])/g, '$1 ، $2');
 
     // General common pronunciation enhancements
     res = res.replace(/\bأحسنت\b/g, 'أَحْسَنْتَ');

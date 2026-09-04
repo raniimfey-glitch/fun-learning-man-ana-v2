@@ -14,13 +14,12 @@
  * ================================================================================
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { SplashScreen } from './components/SplashScreen';
 import { Header } from './components/Header';
 import { CategoriesScreen } from './components/CategoriesScreen';
 import { GameScreen } from './components/GameScreen';
 import { EndScreen } from './components/EndScreen';
-import { AudioSettingsModal } from './components/AudioSettingsModal';
 import { Confetti } from './components/Confetti';
 import { GAME_DATA } from './data/gameData';
 import { CategoryId, Question, ThemeMode } from './types';
@@ -36,7 +35,6 @@ export default function App() {
   const [maxScore, setMaxScore] = useState(0);
   const [correctAnswers, setCorrectAnswers] = useState(0);
   const [wrongAnswers, setWrongAnswers] = useState(0);
-  const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
   const [confettiTrigger, setConfettiTrigger] = useState(0);
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
 
@@ -99,11 +97,11 @@ export default function App() {
     };
   }, []);
 
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
-  };
+  }, []);
 
-  const handleStartGame = (cat: CategoryId) => {
+  const handleStartGame = useCallback((cat: CategoryId) => {
     setSelectedCategory(cat);
     let pool: Question[] = [];
     if (cat === 'all') {
@@ -119,31 +117,35 @@ export default function App() {
     setGameQuestions(selected);
     setMaxScore(selected.length * 4);
     setCurrentScreen('game');
-  };
+  }, []);
 
-  const handleFinishGame = (score: number, correct: number, wrong: number) => {
+  const handleFinishGame = useCallback((score: number, correct: number, wrong: number) => {
     setFinalScore(score);
     setCorrectAnswers(correct);
     setWrongAnswers(wrong);
     setCurrentScreen('end');
-  };
+  }, []);
 
-  const handleReplay = () => {
+  const handleReplay = useCallback(() => {
     if (selectedCategory) {
       handleStartGame(selectedCategory);
     } else {
       setCurrentScreen('categories');
     }
-  };
+  }, [selectedCategory, handleStartGame]);
 
-  const handleGoHome = () => {
+  const handleGoHome = useCallback(() => {
     soundEngine.stopSpeaking();
     setCurrentScreen('categories');
-  };
+  }, []);
 
-  const triggerConfetti = () => {
+  const triggerConfetti = useCallback(() => {
     setConfettiTrigger(Date.now());
-  };
+  }, []);
+
+  const handleFinishSplash = useCallback(() => {
+    setCurrentScreen('categories');
+  }, []);
 
   const isDark = theme === 'dark';
 
@@ -157,27 +159,23 @@ export default function App() {
     >
       {/* Splash Screen */}
       {currentScreen === 'splash' && (
-        <SplashScreen onFinish={() => setCurrentScreen('categories')} />
+        <SplashScreen onFinish={handleFinishSplash} />
       )}
 
       {/* Confetti Animation */}
-      <Confetti triggerKey={confettiTrigger} />
-
-      {/* Audio Settings & DSP Equalizer Modal */}
-      <AudioSettingsModal
-        theme={theme}
-        isOpen={isAudioModalOpen}
-        onClose={() => setIsAudioModalOpen(false)}
+      <Confetti
+        triggerKey={confettiTrigger}
+        continuous={currentScreen === 'end'}
       />
 
       {/* Main Container */}
       <div className="w-full flex-1 flex flex-col">
-        {/* Header with Theme Toggle and Equalizer Buttons */}
+        {/* Header with Theme Toggle Button & Top Bar Confetti on End Screen */}
         <Header
           theme={theme}
           onToggleTheme={toggleTheme}
-          onOpenAudioSettings={() => setIsAudioModalOpen(true)}
           isOnline={isOnline}
+          isEndScreen={currentScreen === 'end'}
         />
 
         {/* Dynamic Screen Content */}
