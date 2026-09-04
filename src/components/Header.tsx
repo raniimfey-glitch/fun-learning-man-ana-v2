@@ -1,20 +1,19 @@
 import React from 'react';
 import { ThemeMode } from '../types';
 import appIcon from '../assets/images/app_icon_game_1788193924099.jpg';
-import { Sun, Moon, Sliders, WifiOff } from 'lucide-react';
+import { Sun, Moon, WifiOff } from 'lucide-react';
 import { soundEngine } from '../services/soundEngine';
 
 interface Props {
   theme: ThemeMode;
   onToggleTheme: () => void;
-  onOpenAudioSettings: () => void;
+  onOpenAudioSettings?: () => void;
   isOnline?: boolean;
 }
 
 export const Header: React.FC<Props> = ({
   theme,
   onToggleTheme,
-  onOpenAudioSettings,
   isOnline = true,
 }) => {
   const isDark = theme === 'dark';
@@ -58,9 +57,9 @@ export const Header: React.FC<Props> = ({
           )}
         </button>
 
-        {/* Center Developer & Brand Pill */}
+        {/* Developer & Brand Pill */}
         <div
-          className={`hidden sm:inline-block rounded-full px-3 py-0.5 text-xs font-bold tracking-wide border transition-colors ${
+          className={`rounded-full px-3 py-1 text-xs font-bold tracking-wide border transition-colors ${
             isDark
               ? 'bg-slate-800/90 text-cyan-300 border-cyan-500/20 shadow-xs'
               : 'bg-cyan-50 text-cyan-800 border-cyan-300 shadow-xs'
@@ -68,42 +67,10 @@ export const Header: React.FC<Props> = ({
         >
           ✨ رنيم فاي | التّعليم الممتع ✨
         </div>
-
-        {/* Audio DSP Settings Button */}
-        <button
-          id="audio-settings-header-btn"
-          onClick={() => {
-            soundEngine.playClick();
-            onOpenAudioSettings();
-          }}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer active:scale-95 border ${
-            isDark
-              ? 'bg-slate-850 hover:bg-slate-800 text-cyan-300 border-cyan-500/30 hover:border-cyan-400/60 shadow-xs'
-              : 'bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border-cyan-300 shadow-xs'
-          }`}
-          title="معادل الصوت الذكي والنظام الصوتي المتطور"
-          aria-label="إعدادات الصوت"
-        >
-          <Sliders className="w-3.5 h-3.5 text-cyan-500" />
-          <span>الصوت والمعادل</span>
-        </button>
-      </div>
-
-      {/* Mobile-only brand badge */}
-      <div className="sm:hidden mb-1">
-        <div
-          className={`inline-block rounded-full px-3 py-0.5 text-[11px] font-bold tracking-wide border transition-colors ${
-            isDark
-              ? 'bg-slate-800/90 text-cyan-300 border-cyan-500/20'
-              : 'bg-cyan-50 text-cyan-800 border-cyan-300'
-          }`}
-        >
-          ✨ رنيم فاي | التّعليم الممتع ✨
-        </div>
       </div>
 
       {/* App Logo & Title */}
-      <div className="flex items-center justify-center gap-2 mt-0.5">
+      <div className="flex items-center justify-center gap-2 mt-1">
         <img
           src={appIcon}
           alt="أيقونة من أنا؟"

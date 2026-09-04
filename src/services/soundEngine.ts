@@ -76,14 +76,22 @@ class SoundEngine {
   }
 
   // Ensure AudioContext is ready and resumed
-  public initAudioContext(): AudioContext {
-    if (!this.ctx) {
-      const AudioCtxClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      this.ctx = new AudioCtxClass();
-      this.buildDspGraph();
-    }
-    if (this.ctx.state === 'suspended') {
-      this.ctx.resume().catch(() => {});
+  public initAudioContext(): AudioContext | null {
+    try {
+      if (!this.ctx) {
+        const AudioCtxClass =
+          (typeof window !== 'undefined' && (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)) ||
+          null;
+        if (AudioCtxClass) {
+          this.ctx = new AudioCtxClass();
+          this.buildDspGraph();
+        }
+      }
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume().catch(() => {});
+      }
+    } catch (e) {
+      console.warn('AudioContext initialization error on this device:', e);
     }
     return this.ctx;
   }
